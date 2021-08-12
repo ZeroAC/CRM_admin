@@ -1,9 +1,6 @@
 <?php
 
-namespace App\Library;
-
-use Illuminate\Support\Facades\Redis;
-
+namespace App\Http\Middleware\Api;
 class ApiSecurity
 {
 

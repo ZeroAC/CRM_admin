@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Middleware\Api;
-use App\Library\ApiSecurity;
+
 use Closure;
 
 class ApiMiddleware
@@ -13,36 +13,31 @@ class ApiMiddleware
         self::$verify = $verify;
     }
 
+    //安全 验签
     private function verify($request)
     {
-        $commonPath = [
-            'api/admin/login',
-            'api/admin/sendSMS',
+        $commonPath = [//走通用接口的url(即无需登录就能访问的)
+            'api/admin/login'
         ];
 
-        // 通用接口
+        //选择采取哪个验证
         if(in_array($request->path(), $commonPath)){
             return  self::$verify->common($request);
         }else {
             return self::$verify->proprietary($request);
-
         }
         return false;
     }
 
-
-
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
-     * @return mixed
-     */
     public function handle($request, Closure $next)
     {
         $time = time();
-        switch($res = $this->verify($request))
+
+        //获得中间件ApiSecurity的验证结果状态码
+        $passRes = $this->verify($request);
+
+        //根据状态码返回约定好的规范响应
+        switch($passRes)
         {
             case "SN200":
                 return $next($request);
@@ -72,7 +67,13 @@ class ApiMiddleware
                 return response()->json(['serverTime'=>$time,'ServerNo'=>'SN009','ResultData'=>'token time out!']);
                 break;
             case "SN010":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN010','ResultData'=>'Permission denied']);
+                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN010','ResultData'=>'token error!']);
+                break;
+            case "SN011":
+                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN011','ResultData'=>'The user has been banned']);
+                break;
+            case "SN012":
+                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN012','ResultData'=>'The device has been banned']);
                 break;
             default:
                 return response()->json(['serverTime'=>$time,'ServerNo'=>'SN006','ResultData'=>'No access!']);

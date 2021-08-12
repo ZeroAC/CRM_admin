@@ -83,10 +83,10 @@ $app->middleware([
 ]);
 
 //路由中间件 一旦你在 HTTP 内核中定义了中间件后，就可以在路由的可选数组中使用该中间件
+//注意lumen无 middlewareGroups
+//只能一个中间件对应一个名称
 $app->routeMiddleware([
-    'auth' => [//用户认证相关的中间件
-        App\Http\Middleware\Authenticate::class
-    ]
+    'auth' => App\Http\Middleware\Api\ApiMiddleware::class
 ]);
 
 /*
