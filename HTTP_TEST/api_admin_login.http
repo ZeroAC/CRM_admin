@@ -1,0 +1,7 @@
+POST http://localhost/api/admin/login
+content-type: application/json
+
+{
+    "time": "{{$datetime 'YYYY-MM-DD'}}",
+    "guid": "{{$guid}}",
+}

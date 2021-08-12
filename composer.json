@@ -6,6 +6,8 @@
     "type": "project",
     "require": {
         "php": "^7.3|^8.0",
+        "gregwar/captcha": "^1.1",
+        "illuminate/redis": "^8.54",
         "laravel/lumen-framework": "^8.0"
     },
     "require-dev": {

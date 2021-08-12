@@ -48,6 +48,10 @@ $app->singleton(
     App\Console\Kernel::class
 );
 
+//在使用 Lumen 的 Redis 缓存之前，你需要通过 Composer 安装 illuminate/redis 包。
+//然后，你需要在 bootstrap/app.php 文件中注册 Illuminate\Redis\RedisServiceProvider
+$app->register(Illuminate\Redis\RedisServiceProvider::class);
+
 /*
 |--------------------------------------------------------------------------
 | Register Config Files
@@ -61,6 +65,8 @@ $app->singleton(
 
 $app->configure('app');
 
+$app->configure('database');//引入数据库配置
+
 /*
 |--------------------------------------------------------------------------
 | Register Middleware
@@ -71,14 +77,17 @@ $app->configure('app');
 | route or middleware that'll be assigned to some specific routes.
 |
 */
+//全局中间件 在应用处理每个 HTTP 请求期间都会运行
+$app->middleware([
+    App\Http\Middleware\CorsMiddleware::class //解决跨域
+]);
 
-// $app->middleware([
-//     App\Http\Middleware\ExampleMiddleware::class
-// ]);
-
-// $app->routeMiddleware([
-//     'auth' => App\Http\Middleware\Authenticate::class,
-// ]);
+//路由中间件 一旦你在 HTTP 内核中定义了中间件后，就可以在路由的可选数组中使用该中间件
+$app->routeMiddleware([
+    'auth' => [//用户认证相关的中间件
+        App\Http\Middleware\Authenticate::class
+    ]
+]);
 
 /*
 |--------------------------------------------------------------------------

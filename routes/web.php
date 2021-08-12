@@ -16,3 +16,20 @@
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
+//生成验证码
+$router->get('/captcha/{number}', 'ToolsController@getCaptcha');
+
+$router->group(['prefix' => 'api'], function () use ($router) {
+
+    //管理员管理相关路由
+    $router->group(['prefix' => 'admin','namespace' => 'Admin'], function () use ($router) {
+        $router->post('login', 'UserController@login');
+        $router->get('login', 'UserController@login');
+    });
+
+    //客户管理相关路由
+    $router->group(['prefix' => 'customer'], function () use ($router) {
+        $router->post('users', function () {
+        });
+    });
+});
