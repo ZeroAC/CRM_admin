@@ -20,14 +20,14 @@ class ToolsController extends Controller
     }
     
     /**
-     * 获取随机的验证码 并与前端传来的number绑定存入redis 用于快速验证
+     * 在后台生成随机的验证码 并与前端传来的number绑定存入redis 用于快速验证
      *
-     * @param [type] $number
-     * @return void
+     * @param [string] $number
+     * @return 验证码图片
      * @Author jy
      * @DateTime 2021-08-12 15:03:26
      */
-    public function getCaptcha($number)
+    public function getCaptcha(string $number)
     {
         $phrase = new PhraseBuilder;
         // 设置验证码位数
@@ -51,18 +51,25 @@ class ToolsController extends Controller
         $builder->output();
     }
 
-    public function verifyCaptcha(Request $request)
+    /**
+     * 验证前端传来的验证码值是否正确
+     *
+     * @param [string] $number 在redis中查找的键
+     * @param [string] $captcha 待验证的值
+     * @return ['status' =>'xxx', 'msg' => 'xxx']
+     * @Author jy
+     * @DateTime 2021-08-12 15:36:51
+     */
+    public function verifyCaptcha(string $number, string $captcha)
     {
-        $data = $request->all();
-        $param = json_decode($data['param'],'true');
-        $key = 'captcha:' . $param['number'];//获取验证码在redis中的key
-        //验证码过期验证
+        $key = 'captcha:' . $number;//获取验证码在redis中的key
+        
+        //验证码是否过期验证
         if(!app('redis')->exists($key)) return ['status' => false, 'msg' => '验证码过期'];
         
         $ans = app('redis')->get($key);//标答
-        $x = strtolower($param['captcha']);//待验证的值 不区分大小写 
-        $param['captcha'] = strtolower($param['captcha']);
-        
+        $x = strtolower($captcha);//待验证的值 不区分大小写 
+
         //验证值是否正确
         if ($x == $ans) return ['status' => true, 'msg' => '验证码正确'];
         return ['status' => false, 'msg' => '输入错误'];
