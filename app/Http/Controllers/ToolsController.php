@@ -34,7 +34,7 @@ class ToolsController extends Controller
         // 生成验证码图片的Builder对象，配置相应属性
         $builder = new CaptchaBuilder($code, $phrase);
         //设置验证码的背景
-        $builder->setBackgroundColor(212, 255, 155);
+        $builder->setBackgroundColor(212, 255, 255);
         //设置验证码干扰
         $builder->setMaxBehindLines(4);
         $builder->setMaxFrontLines(4);

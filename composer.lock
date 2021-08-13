@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "4aa985045496af1048dec3eaa9656ca4",
+    "content-hash": "37a1404eaa634af2596ef4d1dfb5c640",
     "packages": [
         {
             "name": "brick/math",
@@ -2993,13 +2993,7 @@
                 "type": "zip",
                 "url": "https://api.github.com/repos/ramsey/uuid/zipball/fe665a03df4f056aa65af552a96e1976df8c8dae",
                 "reference": "fe665a03df4f056aa65af552a96e1976df8c8dae",
-                "shasum": "",
-                "mirrors": [
-                    {
-                        "url": "https://mirrors.aliyun.com/composer/dists/%package%/%reference%.%type%",
-                        "preferred": true
-                    }
-                ]
+                "shasum": ""
             },
             "require": {
                 "brick/math": "^0.8 || ^0.9",

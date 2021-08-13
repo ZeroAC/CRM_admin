@@ -1,18 +1,14 @@
 <?php
 
 namespace App\Http\Middleware\Api;
+use Ramsey\Uuid\Uuid;
 class ApiSecurity
 {
 
-    /**
-     * 通用接口
-     * @param $request
-     * @return bool|string
-     * @author lc
-     */
     public function common($request)
     {
-        if ($request->all()) {
+        $data = $request->all();
+        if (!empty($data)) {
             $data = $request->all();
             $ckTime = $this->checkTime($data['time']);
 
@@ -38,16 +34,10 @@ class ApiSecurity
         return false;
     }
 
-
-    /**
-     * 非通用接口
-     * @param $request
-     * @return bool|string
-     * @author lc
-     */
     public function proprietary($request)
     {
-        if ($request->all()) {
+        $data = $request->all();
+        if (!empty($data)) {
             $data = $request->all();
             $ckTime = $this->checkTime($data['time']);
 
@@ -88,12 +78,6 @@ class ApiSecurity
         return false;
     }
 
-    /**
-     * 时间验证
-     * @param $time
-     * @return bool|string
-     * @author lc
-     */
     public function checkTime($time)
     {
 
@@ -105,39 +89,23 @@ class ApiSecurity
     }
 
 
-    /**
-     * 通用接口验证
-     * @param $request
-     * @return bool
-     * @author lc
-     */
+   //通用接口验证
     private function checkCommon_v1($request)
     {
         $data = $request->all();
         $path = '/' . $request->path();
         $time = $data['time'];
-        $guid = '45dc325dhs5m';
+        $guid = 'CRM2021080808';
         $param = $data['param'];
-        $cryptToken = 'cinterViewAdmin888';
+        $token = 'CRMPublicToken2021';
 
-        $signature = md5($path . $time . $guid . $param . $cryptToken);
+        $signature = md5($guid . $param . $time . $token . $path);
+        // var_dump($signature);
 
-// app('log')->info($path .'---'. $time .'---'. $guid .'---'. $param .'---'. $cryptToken);
-// app('log')->info($signature . '=====');
-
-        if ($signature != $data['signatures']) {
-            return false;
-        } else {
-            return true;
-        }
+        return $signature == $data['signatures'];
     }
 
-    /**
-     * 非通用接口验证
-     * @param $request
-     * @return bool
-     * @author lc
-     */
+    //业务接口验证
     private function checkProprietary_v1($request)
     {
 
@@ -152,85 +120,59 @@ class ApiSecurity
         $signature = $data['signatures'];
         // 获取提交时间
         $time = $data['time'];
-        // 获取用户信息
-        $user = $this->user($guid);
-        if (!$user) return 'SN007';  // 用户不存在
-        // TOKEN 过期
-        if(time() > $user['token_time']) {
-            return 'SN009';
-        }
+        // 获取用户token 并更新缓存中的过期时间
+        $token = $this->user($guid);
+        if ($token==-1) return 'SN007';  // 用户不存在 guid参数错误
+        else if($token==0) return 'SN009';//token过期 重新登录
 
-        $token = $user['token'];
-
+        //token加密过程
+        $cryptToken = null;//加密后的值
         $hashs = [
-            [0, 4, 9, 15, 22, 28],
-            [2, 8, 19, 25, 30, 31],
-            [20, 25, 31, 3, 4, 8],
-            [25, 31, 0, 9, 13, 17],
-            [29, 2, 11, 17, 21, 26],
-            [10, 15, 18, 29, 2, 3],
-            [5, 10, 15, 17, 18, 22],
-            [8, 20, 22, 27, 19, 25],
+            [0, 6, 9, 15, 22, 28],
+            [2, 8, 17, 25, 30, 31],
+            [20, 28, 31, 3, 4, 8],
+            [25, 31, 4, 9, 13, 17],
+            [29, 2, 11, 27, 21, 26],
+            [10, 15, 18, 21, 2, 3],
+            [5, 10, 15, 17, 11, 22],
+            [8, 20, 22, 27, 19, 27]
         ];
-        $strs = substr($token, 1, 1);
-        $strs .= substr($token, 4, 1);
-        $strs .= substr($token, 7, 1);
+        $strs = substr($token, 1, 1) . substr($token, 5, 1) . substr($token, 6, 1);
         $code = hexdec($strs);
         $str1 = $code % 8;
         $arr = $hashs["$str1"];
-        $m = null;
-        foreach ($arr as $v) {
-            $m .= substr($token, $v, 1);
-        }
+        foreach ($arr as $v) $cryptToken .= substr($token, $v, 1);
 
-        $str = md5($path . $time . $guid . $param . $m);
+        //用与前端一致的签名生成算法  用来校验前端的签名是否正确
+        $ansSignature = md5($guid . $param . $time . $cryptToken . $path);
 
-// app('log')->info($path .'---'. $time .'---'. $guid .'---'. $param .'---'. $m);
-// app('log')->info($signature . '=====');
-
-        if ($signature == $str) {
+        //若签名一致 则通过验证
+        if ($signature == $ansSignature) {
             return 'SN200';
         } else {
             return false;
         }
     }
 
-    /**
-     * 根据guid 获取token
-     *
-     * @param $guid
-     * @return bool|int
-     * @author lc
-     */
+    //根据guid查找其token
     public function user($guid)
     {
-        // 拼接获取token的key
-        $redisKey = config('redisKey')['tokenInfo'].$guid;
-        // 获取缓存里的token
-        $data = Redis::hGetall($redisKey);
-
-        // 判断是否获取
-        if($data){
-            Redis::expire($redisKey, 3600*24*30); // 设置有效期30天
-            return $data;
+        // 获取缓存中的token
+        $key = 'guid:' . $guid;
+        // 该guid在缓存内是存在的则直接返回
+        if(app('redis')->exists($key)){
+            app('redis')->expire($key,7*24*3600);//更新过期时间为七天
+            return app('redis')->get($key);
         }
-        // 没有获取到重新获取 此处请调用获取token的服务
-        $res = app('tokenService')->detail(['guid'=>$guid, 'type' => 2]);
+        //缓存中不存在 则去数据库中获取
+        $data = app('db')->table('data_admin_login')
+                ->select('token','token_time')->where('guid',$guid)->first();
 
-        // app('log')->info('没有获取到重新获取');
-        // app('log')->info($res);
-                if ($res['status']) {
-        // app('log')->info($res['status'].'???');
-                    $array = (array)$res['msg'];
-                    // 重新存入的redis中
-                    Redis::hMset($redisKey,$array);
-                    Redis::expire($redisKey, 3600*24*30);
-                    // 返回
-                    return $array;
-                }
-        // app('log')->info($res['status'].'返回错误');
-                // 返回错误
-        return false;
+        if(!$data->token) return -1;//数据库中无该guid,则查找失败
+        if($data->token_time < time()) return 0;//token已过期
+
+        //此时则查找成功 将其存入缓存再返回即可
+        app('redis')->setex($key, 7*24*3600, $data->token);
+        return $data->token;//查找成功
     }
-
 }
