@@ -49,7 +49,7 @@ class UserController extends Controller
         if ($user->status != 1)  return Tools::serverRes(400, '', 'The account has been sealed. Please contact your administrator');
 
         //账号、密码、状态、均正确 下发token 
-        $token = Tools::getUuid(); // 生产token
+        $token = Tools::getUuid(); // 生产token 要转为字符串 不然存入后为对象
         $token_time = time() + 30 * 24 * 3600; //初始化token过期时间
         $last_time = time(); //更新最后登录时间
         $last_ip = $request->getClientIp(); //最后登录的ip
@@ -59,9 +59,7 @@ class UserController extends Controller
             ->where('guid', $user->guid)
             ->update(compact('token', 'token_time', 'last_time', 'last_ip'));
 
-        //token存入缓存中
-        app('redis')->setex('token:' . $user->guid, 7 * 24 * 3600, $token);
-
+        app('redis')->setex('guid:' . $user->guid, 7*24*3600, $token);
         $resData = [ //登录验证成功 返回数据
             'guid' => $user->guid,
             'user_name' => $userName,
@@ -74,5 +72,18 @@ class UserController extends Controller
             'last_time' => $last_time
         ];
         return Tools::serverRes(200, $resData, 'ok');
+    }
+    //用户详情
+    public function info(Request $request)
+    {
+        $data = $request->all();
+        $res = app('db')->table('data_admin_info')->where('admin_guid',$data['guid'])->first();
+        $data = [
+            'admin_guid' => $res->admin_guid,
+            'nick_name' => $res->nick_name,
+            'phone' => $res->phone,
+            'avatar' => 'https://www.blog8090.com/content/images/2019/12/users.png'
+        ];
+        return Tools::serverRes('200',$data,'this is info');
     }
 }

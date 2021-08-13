@@ -46,13 +46,13 @@ class ApiSecurity
         // 根据版本设计不同的验证 当前只有一个版本
         switch ($data['version']) {
             case 1:
-                $temp = $this->checkProprietary_v1($request);
+                $res = $this->checkProprietary_v1($request);
                 break;
             default:
-                $temp = $this->checkProprietary_v1($request);
+                $res = $this->checkProprietary_v1($request);
                 break;
         }
-        return "SN005";
+        return $res;
     }
 
     public function checkTime($time)
@@ -98,9 +98,9 @@ class ApiSecurity
         $time = $data['time'];
         // 获取用户token 并更新缓存中的过期时间
         $token = $this->user($guid);
-        if ($token==-1) return 'SN008';  // 该用户不存在 
-        else if($token==0) return 'SN009';//token过期 重新登录
-
+        if ($token=='SN008') return 'SN008';  // 该用户不存在 
+        else if($token=='SN009') return 'SN009';//token过期 重新登录
+        // var_dump('token: ', $token);
         //token加密过程
         $cryptToken = null;//加密后的值
         $hashs = [
@@ -121,7 +121,7 @@ class ApiSecurity
 
         //用与前端一致的签名生成算法  用来校验前端的签名是否正确
         $ansSignature = md5($guid . $param . $time . $cryptToken . $path);
-
+        // var_dump($ansSignature);
         //若签名一致 则通过验证
         if ($signature == $ansSignature) {
             return 'SN200';
@@ -135,6 +135,7 @@ class ApiSecurity
     {
         // 获取缓存中的token
         $key = 'guid:' . $guid;
+        
         // 该guid在缓存内是存在的则直接返回
         if(app('redis')->exists($key)){
             app('redis')->expire($key,7*24*3600);//更新过期时间为七天
@@ -143,9 +144,8 @@ class ApiSecurity
         //缓存中不存在 则去数据库中获取
         $data = app('db')->table('data_admin_login')
                 ->select('token','token_time')->where('guid',$guid)->first();
-
-        if(!$data->token) return -1;//数据库中无该guid,则查找失败
-        if($data->token_time < time()) return 0;//token已过期
+        if(!$data->token) return 'SN008';//数据库中无该guid,则查找失败
+        if($data->token_time < time()) return 'SN009';//token已过期
 
         //此时则查找成功 将其存入缓存再返回即可
         app('redis')->setex($key, 7*24*3600, $data->token);
