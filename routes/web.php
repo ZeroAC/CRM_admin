@@ -27,7 +27,6 @@ $router->group(['prefix' => 'api','middleware' => 'auth'], function () use ($rou
     $router->group(['prefix' => 'admin','namespace' => 'Admin'], function () use ($router) {
         $router->get('login', 'UserController@login');
         $router->post('login', 'UserController@login');
-        
     });
 
     //客户管理相关路由
@@ -42,7 +41,7 @@ $router->get('add',function(){//添加超级用户
     $salt = md5(substr($user_name,0,3));//取前三位为盐
     $password = md5('123456'.$salt);//密码加盐后存入
     $status = 1;
-    $token = Uuid::uuid1()->getHex();//生成该用户的token值
+    $token = Uuid::uuid1()->getHex();//生成该用户的默认token值
     $token_time = time()+30*24*3600;//数据库中的token过期时间为30天
     $add_time = time();//用户添加时间
     $last_time = time();//用户最后登录时间
@@ -54,6 +53,6 @@ $router->get('add',function(){//添加超级用户
 $router->get('test',function(){//数据库测试
     $tb = app('db')->table('data_admin_login');
     $guid = '0c839890fbe511ebb5e70242c0a85002';
-    $ = $tb->select('token','token_time')->where('guid',$guid)->first();
+    $token= $tb->select('token','token_time')->where('guid',$guid)->first();
     dd($token);
 });

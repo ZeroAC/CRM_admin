@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Http\Middleware\Api;
-
+use Illuminate\Http\Request;
+use App\Library\Tools;
 use Closure;
 
 class ApiMiddleware
@@ -14,7 +15,7 @@ class ApiMiddleware
     }
 
     //安全 验签
-    private function verify($request)
+    private function verify(Request $request)
     {
         $commonPath = [//走通用接口的url(即无需登录就能访问的)
             'api/admin/login'
@@ -29,7 +30,7 @@ class ApiMiddleware
         return false;
     }
 
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next)
     {
         $time = time();
 
@@ -39,46 +40,45 @@ class ApiMiddleware
         //根据状态码返回约定好的规范响应
         switch($passRes)
         {
-            case "SN200":
+            case "SN200"://OK
                 return $next($request);
                 break;
-            case "SN001":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN001','ResultData'=>'Server internal error!']);
+            case "SN001"://服务器内部错误
+                return Tools::serverRes('SN001','','Server internal error!'); 
                 break;
-            case "SN002":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN002','ResultData'=>'Request timeout!']);
+            case "SN002"://时间异常
+                return Tools::serverRes('SN002','','Request timeout!'); 
                 break;
-            case "SN003":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN003','ResultData'=>'Version number exception!']);
+            case "SN003"://版本号异常
+                return Tools::serverRes('SN003','','Version number exception!');
                 break;
-            case "SN004":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN004','ResultData'=>'Global user ID can not be null!']);
+            case "SN004"://全局用户id不能为空
+                return Tools::serverRes('SN004','','Global user ID can not be null!');
                 break;
-            case "SN005":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN005','ResultData'=>'Signature error!']);
+            case "SN005"://签名错误
+                return Tools::serverRes('SN005','','Signature error!');
                 break;
-            case "SN007":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN007','ResultData'=>'user not!']);
+            case "SN007"://服务器维护状态
+                return Tools::serverRes('SN007','','Server maintenance status');
                 break;
-            case "SN008":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN008','ResultData'=>'Other devices login!']);
+            case "SN008"://当前用户token不存在 也即该用户不存在 后台中token是非空的 注册时就有默认的token生成
+                return Tools::serverRes('SN008','','The current user token does not exist');
                 break;
-            case "SN009":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN009','ResultData'=>'token time out!']);
+            case "SN009"://当前用户token已过期
+                return Tools::serverRes('SN009','','The current user token has expired');
                 break;
-            case "SN010":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN010','ResultData'=>'token error!']);
+            case "SN0010"://当前用户token错误
+                return Tools::serverRes('SN0010','','Current user token error');
                 break;
-            case "SN011":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN011','ResultData'=>'The user has been banned']);
+            case "SN0011"://当前用户被封禁
+                return Tools::serverRes('SN0011','','The user has been banned');
                 break;
-            case "SN012":
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN012','ResultData'=>'The device has been banned']);
+            case "SN012"://当前设备被封禁
+                return Tools::serverRes('SN0012','','No access!');
                 break;
             default:
-                return response()->json(['serverTime'=>$time,'ServerNo'=>'SN006','ResultData'=>'No access!']);
+                return Tools::serverRes('SN006','','Current user token error');
         }
-
     }
 
 }

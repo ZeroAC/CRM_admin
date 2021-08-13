@@ -1,81 +1,58 @@
 <?php
 
 namespace App\Http\Middleware\Api;
-use Ramsey\Uuid\Uuid;
+use Illuminate\Http\Request;
+/**
+ * 签名接口专用返回值code码 以SN开头
+ */
 class ApiSecurity
 {
 
-    public function common($request)
+    //通用接口签名验证
+    public function common(Request $request)
     {
         $data = $request->all();
-        if (!empty($data)) {
-            $data = $request->all();
-            $ckTime = $this->checkTime($data['time']);
+        if(empty($data)) return false;//数据为空直接返回错误
 
-            if (!$ckTime) return 'SN002';
+        if (!$this->checkTime($data['time'])) return 'SN002';//时间异常
 
-            if (!isset($data['guid'])) return 'SN004';
+        if (!isset($data['guid'])) return 'SN004';//guid不能为空
 
-            // 根据版本设计不同的验证
-            switch ($data['version']) {
-                case 1:
-                    $temp = $this->checkCommon_v1($request);
-                    break;
-                default:
-                    $temp = $this->checkCommon_v1($request);
-                    break;
-            }
-
-            if ($temp) {
-                return "SN200";
-            }
-            return "SN005";
+        $res = null;//通用签名验证结果
+        // 根据版本设计不同的验证 当前只有一个版本
+        switch ($data['version']) {
+            case 1:
+                $res = $this->checkCommon_v1($request);
+                break;
+            default:
+                $res = $this->checkCommon_v1($request);
+                break;
         }
-        return false;
+        if ($res) return "SN200";
+        return "SN005";//签名错误
     }
 
+    //业务接口签名验证
     public function proprietary($request)
     {
         $data = $request->all();
-        if (!empty($data)) {
-            $data = $request->all();
-            $ckTime = $this->checkTime($data['time']);
+        if(empty($data)) return false;//数据为空直接返回错误
 
-            if (!$ckTime) return 'SN002';
+        if (!$this->checkTime($data['time'])) return 'SN002';//时间异常
 
-            if (!isset($data['guid'])) return "SN004";
+        if (!isset($data['guid'])) return 'SN004';//guid不能为空
 
-            // 根据版本设计不同的验证
-            switch ($data['version']) {
-                case 1:
-                    $temp = $this->checkProprietary_v1($request);
-                    break;
-                default:
-                    $temp = $this->checkProprietary_v1($request);
-                    break;
-            }
-
-            if ($temp) {
-
-                switch ($temp) {
-                    case 'SN007':
-                        return 'SN007';
-                        break;
-                    case 'SN008':
-                        return 'SN008';
-                        break;
-                    case 'SN009':
-                        return 'SN009';
-                        break;
-                    default:
-                        return 'SN200';
-                        break;
-                }
-            }
-            return "SN005";
+        $res = null;//业务签名验证结果
+        // 根据版本设计不同的验证 当前只有一个版本
+        switch ($data['version']) {
+            case 1:
+                $temp = $this->checkProprietary_v1($request);
+                break;
+            default:
+                $temp = $this->checkProprietary_v1($request);
+                break;
         }
-        // No access! 没有添加签名验证
-        return false;
+        return "SN005";
     }
 
     public function checkTime($time)
@@ -108,7 +85,6 @@ class ApiSecurity
     //业务接口验证
     private function checkProprietary_v1($request)
     {
-
         $data = $request->all();
 
         $path = '/' . $request->path();
@@ -122,7 +98,7 @@ class ApiSecurity
         $time = $data['time'];
         // 获取用户token 并更新缓存中的过期时间
         $token = $this->user($guid);
-        if ($token==-1) return 'SN007';  // 用户不存在 guid参数错误
+        if ($token==-1) return 'SN008';  // 该用户不存在 
         else if($token==0) return 'SN009';//token过期 重新登录
 
         //token加密过程

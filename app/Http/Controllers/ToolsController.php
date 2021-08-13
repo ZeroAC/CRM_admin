@@ -26,18 +26,18 @@ class ToolsController extends Controller
      * @Author jy
      * @DateTime 2021-08-12 15:03:26
      */
-    public function getCaptcha(string $number)
+    public static function getCaptcha(string $number)
     {
         $phrase = new PhraseBuilder;
         // 设置验证码位数
-        $code = $phrase->build(6);
+        $code = $phrase->build(4);
         // 生成验证码图片的Builder对象，配置相应属性
         $builder = new CaptchaBuilder($code, $phrase);
         //设置验证码的背景
         $builder->setBackgroundColor(212, 255, 255);
         //设置验证码干扰
-        $builder->setMaxBehindLines(4);
-        $builder->setMaxFrontLines(4);
+        $builder->setMaxBehindLines(2);
+        $builder->setMaxFrontLines(2);
         //设置验证码大小
         $builder->build($width = 120, $height = 47, $font = null);
         //获取验证码的答案 答案不区分大小写
@@ -59,19 +59,19 @@ class ToolsController extends Controller
      * @Author jy
      * @DateTime 2021-08-12 15:36:51
      */
-    public function verifyCaptcha(string $number, string $captcha)
+    public static function verifyCaptcha(string $number, string $captcha)
     {
         $key = 'captcha:' . $number;//获取验证码在redis中的key
         
         //验证码是否过期验证
-        if(!app('redis')->exists($key)) return ['status' => false, 'msg' => '验证码过期'];
+        if(!app('redis')->exists($key)) return ['status' => false, 'msg' => 'Verification code has expired'];
         
         $ans = app('redis')->get($key);//标答
         $x = strtolower($captcha);//待验证的值 不区分大小写 
 
         //验证值是否正确
-        if ($x == $ans) return ['status' => true, 'msg' => '验证码正确'];
-        return ['status' => false, 'msg' => '输入错误'];
+        if ($x == $ans) return ['status' => true, 'msg' => 'Correct verification code'];
+        return ['status' => false, 'msg' => 'verification code error'];
     }
 
 }
