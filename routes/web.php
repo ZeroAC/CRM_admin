@@ -27,7 +27,7 @@ $router->group(['prefix' => 'api','middleware' => 'auth'], function () use ($rou
     //管理员管理相关路由
     $router->group(['prefix' => 'admin','namespace' => 'Admin'], function () use ($router) {
         $router->post('login', 'UserController@login');
-        $router->post('info','UserController@info');
+        $router->get('info','UserController@info');
     });
 
     //客户管理相关路由

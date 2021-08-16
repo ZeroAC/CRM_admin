@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ToolsController;
+use App\Library\BaseDB;
 use App\Library\Tools;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
+    use BaseDB;
     /**
      * Create a new controller instance.
      *
@@ -37,9 +39,8 @@ class UserController extends Controller
         if (!$resCaptcha['status']) return Tools::serverRes(400,'',$resCaptcha['msg']); //验证码验证失败
 
         //验证码正确 开始验证账号和密码
-        $user = app('db')->table('data_admin_login')
-            ->where('user_name', $userName)
-            ->select('user_name', 'password', 'salt', 'guid', 'status', 'add_time')->first();
+        $this->table = 'data_admin_login';//切换表为管理员登录表
+        $user = $this->getFirst(['user_name', $userName]);
         //账号不存在      密码错误
         if (!$user || md5($password . $user->salt) != $user->password) {
             return Tools::serverRes(400, '', 'Account number does not exist or has a password error');
@@ -55,10 +56,7 @@ class UserController extends Controller
         $last_ip = $request->getClientIp(); //最后登录的ip
 
         //更新该用户信息
-        app('db')->table('data_admin_login')
-            ->where('guid', $user->guid)
-            ->update(compact('token', 'token_time', 'last_time', 'last_ip'));
-
+        $this->update(['guid',$user->guid],compact('token', 'token_time', 'last_time', 'last_ip'));
         app('redis')->setex('guid:' . $user->guid, 7*24*3600, $token);
         $resData = [ //登录验证成功 返回数据
             'guid' => $user->guid,
@@ -77,7 +75,7 @@ class UserController extends Controller
     public function info(Request $request)
     {
         $data = $request->all();
-        $res = app('db')->table('data_admin_info')->where('admin_guid',$data['guid'])->first();
+        $res = $this->getFirst(['admin_guid',$data['guid']]);
         $data = [
             'admin_guid' => $res->admin_guid,
             'nick_name' => $res->nick_name,
@@ -86,4 +84,5 @@ class UserController extends Controller
         ];
         return Tools::serverRes('200',$data,'this is info');
     }
+
 }
